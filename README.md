@@ -217,9 +217,109 @@ All consumers of the BrowserTools MCP Server interface with the same NodeJS API 
 
 ## Installation
 
+### Option 1: Quick Install (Recommended)
+
 Installation steps can be found in our documentation:
 
 - [BrowserTools MCP Docs](https://browsertools.agentdesk.ai/)
+
+### Option 2: Local Development Build
+
+If you want to build and run from source code:
+
+#### Prerequisites
+- Node.js (v16 or higher)
+- npm
+
+#### Build Steps
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/AgentDeskAI/browser-tools-mcp.git
+   cd browser-tools-mcp
+   ```
+
+2. **Build the MCP Server**:
+   ```bash
+   cd browser-tools-mcp/
+   npm install
+   npm run build
+   ```
+
+3. **Build the Browser Tools Server**:
+   ```bash
+   cd ../browser-tools-server/
+   npm install
+   npm run build
+   ```
+
+#### Usage with Local Build
+
+1. **Start the Browser Tools Server** (middleware):
+   ```bash
+   node /path/to/browser-tools-mcp/browser-tools-server/dist/browser-connector.js
+   ```
+
+2. **Install Chrome Extension**:
+   - Load the extension from the `chrome-extension/` directory in developer mode
+
+3. **Configure your MCP Client**:
+
+   **For Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+   ```json
+   {
+     "mcpServers": {
+       "browser-tools-mcp": {
+         "command": "node",
+         "args": ["/path/to/browser-tools-mcp/browser-tools-mcp/dist/mcp-server.js"],
+         "env": {
+           "BROWSER_TOOLS_HOST": "127.0.0.1",
+           "BROWSER_TOOLS_PORT": "3025"
+         }
+       }
+     }
+   }
+   ```
+
+   **For Cursor IDE**:
+   ```json
+   {
+     "mcp": {
+       "servers": {
+         "browser-tools-mcp": {
+           "command": "node",
+           "args": ["/path/to/browser-tools-mcp/browser-tools-mcp/dist/mcp-server.js"],
+           "env": {
+             "BROWSER_TOOLS_HOST": "127.0.0.1", 
+             "BROWSER_TOOLS_PORT": "3025"
+           }
+         }
+       }
+     }
+   }
+   ```
+
+   **For other MCP clients**:
+   ```bash
+   node /path/to/browser-tools-mcp/browser-tools-mcp/dist/mcp-server.js
+   ```
+
+4. **Restart your MCP client** to load the new configuration
+
+#### Available MCP Tools
+- `getConsoleLogs` - Retrieve browser console logs
+- `getConsoleErrors` - Get console error messages
+- `getNetworkLogs` - Fetch network request logs
+- `getNetworkErrors` - Get network error logs
+- `takeScreenshot` - Capture current browser tab
+- `getSelectedElement` - Get currently selected DOM element
+- `wipeLogs` - Clear all stored logs
+- `runAccessibilityAudit` - Run WCAG accessibility audit
+- `runPerformanceAudit` - Run Lighthouse performance audit
+- `runSEOAudit` - Run SEO analysis
+- `runBestPracticesAudit` - Run web development best practices audit
+- `runDebuggerMode` - Execute all debugging tools in sequence
+- `runAuditMode` - Execute all audit tools in sequence
 
 ## Usage
 

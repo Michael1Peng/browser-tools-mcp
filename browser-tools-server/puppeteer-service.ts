@@ -923,3 +923,47 @@ export async function connectToHeadlessBrowser(
     );
   }
 }
+
+// ===== Shutdown Management =====
+
+/**
+ * Forcefully shuts down the Puppeteer service and cleans up all resources
+ * This should be called during application shutdown to ensure proper cleanup
+ * @returns Promise that resolves when cleanup is complete
+ */
+export async function shutdownPuppeteerService(): Promise<void> {
+  console.log("Shutting down Puppeteer service...");
+  
+  // Cancel any scheduled cleanup first
+  cancelScheduledCleanup();
+  
+  // Force close the browser instance if it exists
+  if (headlessBrowserInstance) {
+    try {
+      console.log("Force closing Puppeteer browser instance...");
+      // Use close() instead of terminate() for graceful shutdown
+      await headlessBrowserInstance.close();
+      console.log("Puppeteer browser instance closed successfully");
+    } catch (error) {
+      console.error("Error closing Puppeteer browser instance:", error);
+      // If graceful close fails, try to terminate it
+      try {
+        await headlessBrowserInstance.process()?.kill('SIGKILL');
+        console.log("Puppeteer browser process terminated forcefully");
+      } catch (killError) {
+        console.error("Error terminating Puppeteer browser process:", killError);
+      }
+    } finally {
+      // Reset instance variables regardless of close success
+      headlessBrowserInstance = null;
+      launchedBrowserWSEndpoint = null;
+    }
+  } else {
+    console.log("No active Puppeteer browser instance to close");
+  }
+  
+  // Clear the cached browser path for next startup
+  detectedBrowserPath = null;
+  
+  console.log("Puppeteer service shutdown complete");
+}

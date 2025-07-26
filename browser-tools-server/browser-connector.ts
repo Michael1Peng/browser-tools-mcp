@@ -20,6 +20,7 @@ import {
 } from "./lighthouse/index.js";
 import * as net from "net";
 import { runBestPracticesAudit } from "./lighthouse/best-practices.js";
+import { shutdownPuppeteerService } from "./puppeteer-service.js";
 
 /**
  * Converts a file path to the appropriate format for the current platform
@@ -1493,6 +1494,10 @@ export class BrowserConnector {
             }
           });
         });
+
+        // Shutdown Puppeteer service to close browser instances
+        console.log("Shutting down Puppeteer service...");
+        await shutdownPuppeteerService();
 
         // Clear all logs
         clearAllLogs();

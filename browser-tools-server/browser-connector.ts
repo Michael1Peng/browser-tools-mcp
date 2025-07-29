@@ -756,6 +756,13 @@ export class BrowserConnector {
           this.activeConnection = null;
         }
       });
+
+      ws.on("error", (error) => {
+        console.error("WebSocket error:", error);
+        if (this.activeConnection === ws) {
+          this.activeConnection = null;
+        }
+      });
     });
 
     // Add screenshot endpoint
@@ -1269,27 +1276,46 @@ export class BrowserConnector {
         }
       }
 
-      // Set a timeout to force close after 2 seconds
-      const forceCloseTimeout = setTimeout(() => {
-        console.log("Force closing connections after timeout...");
-        if (this.activeConnection) {
-          this.activeConnection.terminate(); // Force close the connection
-          this.activeConnection = null;
-        }
-        this.wss.close();
-        resolve();
-      }, 2000);
-
-      // Close active WebSocket connection if exists
+      // Close all WebSocket connections first
       if (this.activeConnection) {
-        this.activeConnection.close(1000, "Server shutting down");
-        this.activeConnection = null;
+        try {
+          this.activeConnection.close(1000, "Server shutting down");
+          this.activeConnection = null;
+        } catch (err) {
+          console.error("Error closing active connection:", err);
+        }
       }
 
+      // Close all client connections
+      this.wss.clients.forEach((client) => {
+        try {
+          if (client.readyState === WebSocket.OPEN) {
+            client.close(1000, "Server shutting down");
+          }
+        } catch (err) {
+          console.error("Error closing client connection:", err);
+        }
+      });
+
+      // Set a timeout to force close after 1 second
+      const forceCloseTimeout = setTimeout(() => {
+        console.log("Force closing connections after timeout...");
+        try {
+          this.wss.close();
+        } catch (err) {
+          console.error("Error force closing WebSocket server:", err);
+        }
+        resolve();
+      }, 1000);
+
       // Close WebSocket server
-      this.wss.close(() => {
+      this.wss.close((err) => {
         clearTimeout(forceCloseTimeout);
-        console.log("WebSocket server closed gracefully");
+        if (err) {
+          console.error("Error closing WebSocket server:", err);
+        } else {
+          console.log("WebSocket server closed gracefully");
+        }
         resolve();
       });
     });
@@ -1474,8 +1500,17 @@ export class BrowserConnector {
     // Initialize the browser connector with the existing app AND server
     const browserConnector = new BrowserConnector(app, server);
 
+    // Add flag to prevent multiple shutdown attempts
+    let isShuttingDown = false;
+
     // Handle shutdown gracefully with improved error handling
     process.on("SIGINT", async () => {
+      if (isShuttingDown) {
+        console.log("\nShutdown already in progress, ignoring additional SIGINT");
+        return;
+      }
+
+      isShuttingDown = true;
       console.log("\nReceived SIGINT signal. Starting graceful shutdown...");
 
       try {
@@ -1513,6 +1548,10 @@ export class BrowserConnector {
 
     // Also handle SIGTERM
     process.on("SIGTERM", () => {
+      if (isShuttingDown) {
+        console.log("\nShutdown already in progress, ignoring additional SIGTERM");
+        return;
+      }
       console.log("\nReceived SIGTERM signal");
       process.emit("SIGINT");
     });
